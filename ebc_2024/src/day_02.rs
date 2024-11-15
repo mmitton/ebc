@@ -12,52 +12,76 @@ impl Day02 {
         Self::default()
     }
 
-    fn left_right(&self, lines: &[String], wrapping: bool) -> HashSet<(usize, usize)> {
-        let reverse_words = self
-            .words
-            .iter()
-            .map(|w| w.chars().rev().collect::<String>())
-            .collect::<Vec<_>>();
+    fn scan_runes(&self, cylinder: bool) -> usize {
+        let mut found_runes: HashSet<(usize, usize)> = HashSet::default();
+        let runes: Vec<Vec<char>> = self.lines.iter().map(|l| l.chars().collect()).collect();
+        let words: Vec<Vec<char>> = self.words.iter().map(|l| l.chars().collect()).collect();
 
-        let mut points: HashSet<(usize, usize)> = HashSet::default();
-        fn add_matches(
-            s: &str,
-            w: &str,
-            x: usize,
-            y: usize,
-            wrapping: bool,
-            points: &mut HashSet<(usize, usize)>,
-        ) {
-            if s.len() < w.len() {
-                return;
-            }
-            if !wrapping || s.len() >= w.len() + x {
-                if s[x..].starts_with(w) {
-                    points.extend((x..x + w.len()).map(|x| (x, y)))
-                }
-            } else {
-                let tail = &s[x..];
-                let head = &s[..w.len() - (s.len() - x)];
-                if w.starts_with(tail) && w.ends_with(head) {
-                    points.extend((0..head.len()).map(|x| (x, y)));
-                    points.extend((x..s.len()).map(|x| (x, y)));
+        let h = runes.len();
+        for y in 0..h {
+            let w = runes[y].len();
+            for x in 0..w {
+                for word in words.iter() {
+                    if word[0] == runes[y][x] {
+                        let mut dirs = [
+                            Some((x, y, 1, 0, vec![(x, y)])),
+                            Some((x, y, -1, 0, vec![(x, y)])),
+                            if cylinder {
+                                Some((x, y, 0, 1, vec![(x, y)]))
+                            } else {
+                                None
+                            },
+                            if cylinder {
+                                Some((x, y, 0, -1, vec![(x, y)]))
+                            } else {
+                                None
+                            },
+                        ];
+
+                        for c in word.iter().skip(1).copied() {
+                            let mut active = false;
+                            for opt_dir in dirs.iter_mut() {
+                                if let Some(dir) = opt_dir {
+                                    let mut x = dir.0 as isize + dir.2;
+                                    let y = dir.1 as isize + dir.3;
+
+                                    if y < 0 || y >= h as isize {
+                                        *opt_dir = None;
+                                        continue;
+                                    }
+                                    if x < 0 || x >= w as isize {
+                                        if cylinder {
+                                            x = x.rem_euclid(w as isize);
+                                        } else {
+                                            *opt_dir = None;
+                                            continue;
+                                        }
+                                    }
+
+                                    dir.0 = x as usize;
+                                    dir.1 = y as usize;
+                                    if runes[dir.1][dir.0] != c {
+                                        *opt_dir = None;
+                                        continue;
+                                    }
+
+                                    dir.4.push((dir.0, dir.1));
+                                    active = true;
+                                }
+                            }
+                            if !active {
+                                break;
+                            }
+                        }
+
+                        // Any left are good!
+                        found_runes.extend(dirs.into_iter().flatten().flat_map(|dir| dir.4));
+                    }
                 }
             }
         }
 
-        for (y, s) in lines.iter().enumerate() {
-            (0..s.len()).for_each(|x| {
-                self.words
-                    .iter()
-                    .zip(reverse_words.iter())
-                    .for_each(|(w, rw)| {
-                        add_matches(s, w, x, y, wrapping, &mut points);
-                        add_matches(s, rw, x, y, wrapping, &mut points);
-                    });
-            });
-        }
-
-        points
+        found_runes.len()
     }
 }
 
@@ -92,25 +116,12 @@ impl helper::Runner for Day02 {
     }
 
     fn part2(&mut self) -> Result<helper::RunOutput, Error> {
-        Ok(self.left_right(&self.lines, false).len().into())
+        Ok(self.scan_runes(false).into())
     }
 }
 
 impl helper::EbcRunner for Day02 {
     fn part3(&mut self) -> Result<helper::RunOutput, Error> {
-        let line_chars: Vec<Vec<char>> = self.lines.iter().map(|s| s.chars().collect()).collect();
-        let rotated_lines: Vec<String> = (0..line_chars[0].len())
-            .map(|i| line_chars.iter().map(|l| l[i]).collect::<String>())
-            .collect();
-
-        let mut runes = HashSet::default();
-        runes.extend(self.left_right(&self.lines, true).iter().copied());
-        runes.extend(
-            self.left_right(&rotated_lines, false)
-                .iter()
-                .copied()
-                .map(|(y, x)| (x, y)),
-        );
-        Ok(runes.len().into())
+        Ok(self.scan_runes(true).into())
     }
 }
