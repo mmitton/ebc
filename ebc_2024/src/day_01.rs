@@ -29,15 +29,6 @@ impl Day01 {
         };
         a.iter().map(|ch| potions_needed(ch, extra)).sum()
     }
-}
-
-impl helper::Runner for Day01 {
-    fn parse(&mut self, file: &[u8], _part1: bool) -> Result<(), Error> {
-        let line = Lines::from_bufread(file, LinesOpt::RAW)?.single_line()?;
-        self.battles.extend(line.chars());
-
-        Ok(())
-    }
 
     fn part1(&mut self) -> Result<helper::RunOutput, Error> {
         Ok(self
@@ -56,9 +47,7 @@ impl helper::Runner for Day01 {
             .sum::<usize>()
             .into())
     }
-}
 
-impl helper::EbcRunner for Day01 {
     fn part3(&mut self) -> Result<helper::RunOutput, Error> {
         Ok(self
             .battles
@@ -66,5 +55,22 @@ impl helper::EbcRunner for Day01 {
             .map(Self::potions_needed)
             .sum::<usize>()
             .into())
+    }
+}
+
+impl helper::Runner for Day01 {
+    fn parse(&mut self, file: &[u8], _part: u8) -> Result<(), Error> {
+        let line = Lines::from_bufread(file, LinesOpt::RAW)?.single_line()?;
+        self.battles.extend(line.chars());
+        Ok(())
+    }
+
+    fn run_part(&mut self, part: u8) -> Result<helper::RunOutput, Error> {
+        match part {
+            1 => self.part1(),
+            2 => self.part2(),
+            3 => self.part3(),
+            _ => Err(Error::Skipped),
+        }
     }
 }

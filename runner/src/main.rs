@@ -6,118 +6,212 @@ mod run;
 
 struct TimesCacheEntry {
     day: usize,
-    part1: Result<Duration, Error>,
-    part2: Result<Duration, Error>,
-    part3: Result<Duration, Error>,
+    results: BTreeMap<u8, Result<Duration, Error>>,
 }
 
-fn print_times(md: bool, run_count: usize, times_cache: &BTreeMap<usize, Vec<TimesCacheEntry>>) {
-    if times_cache.len() > 1 {
-        if md {
-            println!("| Year Totals | Part 1 | Part 2 | Both |");
-            println!("| ---: | ---: | ---: | ---: |");
-        } else {
-            println!("+------+------------+------------+-------------+");
-            println!("| Year |     Part 1 |     Part 2 |      Both % |");
-            println!("+------+------------+------------+-------------+");
+fn print_times(
+    md: bool,
+    run_count: usize,
+    parts: u8,
+    times_cache: &BTreeMap<usize, Vec<TimesCacheEntry>>,
+) {
+    fn print_dashed(parts: u8, header: &str) {
+        fn dashed(len: usize) {
+            for _ in 0..len {
+                print!("-");
+            }
         }
+        print!("+");
+        dashed(header.len() + 2);
+        print!("+");
+        for _ in 1..=parts {
+            dashed(12);
+            print!("+");
+        }
+        if header == "Year" {
+            dashed(13);
+            println!("+");
+        } else {
+            for _ in 1..=parts {
+                dashed(10);
+                print!("+");
+            }
+            println!();
+        }
+    }
+    fn print_header(md: bool, parts: u8, header: &str) {
+        if md {
+            print!("| {header} |");
+            for part in 1..=parts {
+                print!(" Part {part} |");
+            }
+            if header == "Year" {
+                println!(" Total |");
+            } else {
+                for part in 1..=parts {
+                    print!(" Part {part} % |");
+                }
+                println!();
+            }
+            print!("| ---: |");
+            for _ in 1..=parts {
+                print!(" --: |");
+            }
+            if header == "Year" {
+                println!(" ---: |");
+            } else {
+                for _ in 1..=parts {
+                    print!(" --: |");
+                }
+                println!();
+            }
+        } else {
+            print_dashed(parts, header);
+            print!("| {header} |");
+            for part in 1..=parts {
+                print!(" {part:>10} |", part = format!("Part {part}"));
+            }
+            if header == "Year" {
+                println!(" {total:>11} |", total = "Total");
+            } else {
+                for part in 1..=parts {
+                    print!(" {part:>8} |", part = format!("Part {part} %"));
+                }
+                println!();
+            }
+            print_dashed(parts, header);
+        }
+    }
+    if times_cache.len() > 1 {
+        print_header(md, parts, "Year");
         for (year, times_cache) in times_cache.iter().rev() {
             let mut total = Duration::new(0, 0);
-            let mut part1_total = Duration::new(0, 0);
-            let mut part2_total = Duration::new(0, 0);
+            let mut part_totals: BTreeMap<u8, Duration> = BTreeMap::new();
             for entry in times_cache.iter() {
-                if let Ok(dur) = entry.part1 {
-                    part1_total += dur;
-                    total += dur;
-                }
-                if let Ok(dur) = entry.part2 {
-                    part2_total += dur;
-                    total += dur;
+                for (part, result) in entry.results.iter() {
+                    if let Ok(dur) = result {
+                        *part_totals.entry(*part).or_default() += *dur;
+                        total += *dur;
+                    }
                 }
             }
-            let prt1 = format!("{elapsed:0.5} s", elapsed = part1_total.as_secs_f64());
-            let prt2 = format!("{elapsed:0.5} s", elapsed = part2_total.as_secs_f64());
-            let total = format!("{elapsed:0.5} s", elapsed = total.as_secs_f64());
             if md {
-                println!("| {year} | {prt1} | {prt2} | {total} |");
+                print!("| {year} |");
+                for part in 1..=parts {
+                    if let Some(dur) = part_totals.get(&part) {
+                        print!(" {dur:0.5} s |", dur = dur.as_secs_f64());
+                    } else {
+                        print!(" |");
+                    }
+                }
+                println!(" {dur:0.5} s |", dur = total.as_secs_f64());
             } else {
-                println!("| {year} | {prt1:>10} | {prt2:>10} | {total:>11} |");
+                print!("| {year} |");
+                for part in 1..=parts {
+                    if let Some(dur) = part_totals.get(&part) {
+                        print!(" {dur:>10} |", dur = format!("{:0.5} s", dur.as_secs_f64()));
+                    } else {
+                        print!(" |");
+                    }
+                }
+                println!(
+                    " {dur:>11} |",
+                    dur = format!("{:0.5} s", total.as_secs_f64())
+                );
             }
         }
         if !md {
-            println!("+------+------------+------------+-------------+");
+            print_dashed(parts, "Year")
         }
         println!();
     }
 
     for (year, times_cache) in times_cache.iter().rev() {
         let mut total = Duration::new(0, 0);
-        let mut part1_total = Duration::new(0, 0);
-        let mut part2_total = Duration::new(0, 0);
+        let mut part_totals: BTreeMap<u8, Duration> = BTreeMap::new();
         for entry in times_cache.iter() {
-            if let Ok(dur) = entry.part1 {
-                part1_total += dur;
-                total += dur;
-            }
-            if let Ok(dur) = entry.part2 {
-                part2_total += dur;
-                total += dur;
+            for (part, result) in entry.results.iter() {
+                if let Ok(dur) = result {
+                    *part_totals.entry(*part).or_default() += *dur;
+                    total += *dur;
+                }
             }
         }
+
         if run_count > 1 {
             println!("Year: {year}  Averaged over {run_count} runs.");
         } else {
             println!("Year: {year}");
         }
-        if md {
-            println!("| Day | Part 1 | Part 2 | P1 % | P2 % |");
-            println!("| ---: | ---: | ---: | ---: | ---: |");
-        } else {
-            println!("+-------+------------+------------+---------+---------+");
-            println!("|   Day |     Part 1 |     Part 2 |    P1 % |    P2 % |");
-            println!("+-------+------------+------------+---------+---------+");
-        }
-        for TimesCacheEntry {
-            day,
-            part1,
-            part2,
-            part3,
-        } in times_cache.iter()
-        {
-            if part1.is_err() && part2.is_err() {
+        print_header(md, parts, "Day");
+        for TimesCacheEntry { day, results } in times_cache.iter().rev() {
+            if !results.values().any(|result| result.is_ok()) {
                 continue;
             }
-            let (prt1, per1) = if let Ok(prt1) = part1 {
-                (
-                    format!("{:0.5} s", prt1.as_secs_f64()),
-                    format!("{:0.2}%", prt1.as_secs_f64() / total.as_secs_f64() * 100.),
-                )
+            if md {
+                print!("| {day} |");
             } else {
-                (String::new(), String::new())
-            };
-            let (prt2, per2) = if let Ok(prt2) = part2 {
-                (
-                    format!("{:0.5} s", prt2.as_secs_f64()),
-                    format!("{:0.2}%", prt2.as_secs_f64() / total.as_secs_f64() * 100.),
-                )
+                print!("| {day:>3} |");
+            }
+            for part in 1..=parts {
+                let time = if let Some(Ok(dur)) = results.get(&part) {
+                    format!("{:0.5} s", dur.as_secs_f64())
+                } else {
+                    String::new()
+                };
+                if md {
+                    print!(" {time} |");
+                } else {
+                    print!(" {time:>10} |");
+                }
+            }
+            for part in 1..=parts {
+                let percent = if let Some(Ok(dur)) = results.get(&part) {
+                    format!("{:0.2}%", dur.as_secs_f64() / total.as_secs_f64() * 100.)
+                } else {
+                    String::new()
+                };
+                if md {
+                    print!(" {percent} |");
+                } else {
+                    print!(" {percent:>8} |");
+                }
+            }
+            println!();
+        }
+
+        if !md {
+            print_dashed(parts, "Day");
+        }
+        print!("| All |");
+        for part in 1..=parts {
+            let time = if let Some(dur) = part_totals.get(&part) {
+                format!("{:0.5} s", dur.as_secs_f64())
             } else {
-                (String::new(), String::new())
+                String::new()
             };
             if md {
-                println!("| {day} | {prt1} | {prt2} | {per1} | {per2} |");
+                print!(" {time} |");
             } else {
-                println!("| {day:>5} | {prt1:>10} | {prt2:>10} | {per1:>7} | {per2:>7} |");
+                print!(" {time:>10} |");
             }
         }
-        let prt1 = format!("{elapsed:0.5} s", elapsed = part1_total.as_secs_f64());
-        let prt2 = format!("{elapsed:0.5} s", elapsed = part2_total.as_secs_f64());
-        let total = format!("{elapsed:0.5} s", elapsed = total.as_secs_f64());
-        if md {
-            println!("| Total | {prt1} | {prt2} | Both | {total} |");
-        } else {
-            println!("+-------+------------+------------+-------------------+");
-            println!("| Total | {prt1:>10} | {prt2:>10} | Both  {total:>11} |");
-            println!("+-------+------------+------------+-------------------+");
+        for part in 1..=parts {
+            let percent = if let Some(dur) = part_totals.get(&part) {
+                format!("{:0.2}%", dur.as_secs_f64() / total.as_secs_f64() * 100.)
+            } else {
+                String::new()
+            };
+            if md {
+                print!(" {percent} |");
+            } else {
+                print!(" {percent:>8} |");
+            }
+        }
+        println!();
+
+        if !md {
+            print_dashed(parts, "Day");
         }
         println!();
     }
@@ -144,7 +238,7 @@ fn main() -> Result<(), Error> {
     let run_count = times.unwrap_or(1);
 
     let input_file_cache: InputFileCache<3> = helper::InputFileCache::new()?;
-    for ((year, day), new_runner) in runners.iter().rev() {
+    for ((year, day), (parts, new_runner)) in runners.iter().rev() {
         if let Some(target_year) = target_year {
             if target_year != *year {
                 continue;
@@ -167,49 +261,32 @@ fn main() -> Result<(), Error> {
             _ => {}
         }
 
-        let part1 = run::run(
-            sample_data,
-            new_runner,
-            times.is_none(),
-            run_count,
-            *year,
-            *day,
-            1,
-            &input_file_cache,
-        );
-        let part2 = run::run(
-            sample_data,
-            new_runner,
-            times.is_none(),
-            run_count,
-            *year,
-            *day,
-            2,
-            &input_file_cache,
-        );
-        let part3 = run::run(
-            sample_data,
-            new_runner,
-            times.is_none(),
-            run_count,
-            *year,
-            *day,
-            3,
-            &input_file_cache,
-        );
-
-        if times.is_some() {
-            times_cache.entry(*year).or_default().push(TimesCacheEntry {
-                day: *day,
-                part1,
-                part2,
-                part3,
-            });
+        let mut times_cache_entry = TimesCacheEntry {
+            day: *day,
+            results: BTreeMap::new(),
+        };
+        for part in 1..=*parts {
+            let result = run::run(
+                sample_data,
+                new_runner,
+                times.is_none(),
+                run_count,
+                *year,
+                *day,
+                1,
+                &input_file_cache,
+            );
+            times_cache_entry.results.insert(part, result);
         }
+        times_cache
+            .entry(*year)
+            .or_default()
+            .push(times_cache_entry);
     }
 
     if times.is_some() && !times_cache.is_empty() {
-        print_times(md, run_count, &times_cache);
+        let parts = *runners.values().map(|(parts, _)| parts).max().unwrap();
+        print_times(md, run_count, parts, &times_cache);
     }
 
     Ok(())

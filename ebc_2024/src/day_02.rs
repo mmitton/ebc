@@ -83,24 +83,6 @@ impl Day02 {
 
         found_runes.len()
     }
-}
-
-impl helper::Runner for Day02 {
-    fn parse(&mut self, file: &[u8], _part1: bool) -> Result<(), Error> {
-        let lines = Lines::from_bufread(file, LinesOpt::RAW)?;
-        self.words.extend(
-            lines[0]
-                .strip_prefix("WORDS:")
-                .unwrap()
-                .split(',')
-                .map(|s| s.to_string()),
-        );
-        for line in lines[2..].iter() {
-            self.lines.push(line.into());
-        }
-
-        Ok(())
-    }
 
     fn part1(&mut self) -> Result<helper::RunOutput, Error> {
         Ok(self
@@ -118,10 +100,34 @@ impl helper::Runner for Day02 {
     fn part2(&mut self) -> Result<helper::RunOutput, Error> {
         Ok(self.scan_runes(false).into())
     }
-}
 
-impl helper::EbcRunner for Day02 {
     fn part3(&mut self) -> Result<helper::RunOutput, Error> {
         Ok(self.scan_runes(true).into())
+    }
+}
+
+impl helper::Runner for Day02 {
+    fn parse(&mut self, file: &[u8], _part: u8) -> Result<(), Error> {
+        let lines = Lines::from_bufread(file, LinesOpt::RAW)?;
+        self.words.extend(
+            lines[0]
+                .strip_prefix("WORDS:")
+                .unwrap()
+                .split(',')
+                .map(|s| s.to_string()),
+        );
+        for line in lines[2..].iter() {
+            self.lines.push(line.into());
+        }
+        Ok(())
+    }
+
+    fn run_part(&mut self, part: u8) -> Result<helper::RunOutput, Error> {
+        match part {
+            1 => self.part1(),
+            2 => self.part2(),
+            3 => self.part3(),
+            _ => Err(Error::Skipped),
+        }
     }
 }

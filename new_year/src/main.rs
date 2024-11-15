@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use helper::{search_up, Error, SearchType};
 
@@ -14,14 +14,42 @@ fn exec(cmd: &str, args: &[&str]) -> Result<(), Error> {
     Ok(())
 }
 
+fn add_dependency(section: &str, dep: &str) -> Result<(), Error> {
+    let mut lines: Vec<String> = std::fs::read_to_string("Cargo.toml")?
+        .split_terminator('\n')
+        .map(|s| s.into())
+        .collect();
+
+    let mut found = false;
+    for (i, line) in lines.iter().enumerate() {
+        if line.trim() == section {
+            found = true;
+            lines.insert(i + 1, dep.into());
+            break;
+        }
+    }
+
+    if !found {
+        // Could not find the section, add it!
+        lines.push("".into());
+        lines.push(section.into());
+        lines.push(dep.into());
+    }
+
+    std::fs::write("Cargo.toml", lines.join("\n"))?;
+    Ok(())
+}
+
 fn create_year(year: usize) -> Result<(), Error> {
     // Find runner crate
-    let runner_path = search_up("ebc", SearchType::Dir)?;
-    std::env::set_current_dir(runner_path)?;
+    let runner_path = search_up("runner", SearchType::Dir)?;
+    let root_path = runner_path.parent().unwrap();
+    std::env::set_current_dir(root_path)?;
 
     // Check to see if crate exists
     let crate_path_str = format!("ebc_{year}");
-    let crate_path = Path::new(crate_path_str.as_str());
+    let mut crate_path: PathBuf = root_path.into();
+    crate_path.push(&crate_path_str);
     if crate_path.exists() {
         return Err(Error::YearExists(year));
     }
@@ -29,17 +57,29 @@ fn create_year(year: usize) -> Result<(), Error> {
     // Create crate library and add it as a dependency to runner
     exec("cargo", &["new", "--lib", &crate_path_str])?;
 
+    add_dependency(
+        "[workspace.dependencies]",
+        format!("ebc_{year} = {{ path = \"ebc_{year}\" }}").as_str(),
+    )?;
+    std::env::set_current_dir(runner_path)?;
+    add_dependency(
+        "[dependencies]",
+        format!("ebc_{year}.workspace = true").as_str(),
+    )?;
+
     // Change in to crate folder and build files
-    std::env::set_current_dir(&crate_path_str)?;
-    // exec("cargo", &["add", "--path", "../helper"])?;
+    std::env::set_current_dir(crate_path)?;
+    add_dependency("[dependencies]", "helper.workspace = true")?;
 
     let mut mod_path = PathBuf::from("src");
     mod_path.push("lib.rs");
     let mut m = std::fs::File::create(mod_path)?;
-    writeln!(m, "use helper::NewEbcRunner;")?;
+    writeln!(m, "use helper::NewRunner;")?;
     writeln!(m, "use std::collections::BTreeMap;")?;
     writeln!(m)?;
-    for day in 1..=20 {
+    let days = 20;
+    for day in 1..=days {
+        let parts = 3;
         writeln!(m, "mod day_{day:02};")?;
 
         let mut day_path = PathBuf::from("src");
@@ -58,12 +98,21 @@ fn create_year(year: usize) -> Result<(), Error> {
         writeln!(d, "    pub fn new() -> Self {{")?;
         writeln!(d, "        Self::default()")?;
         writeln!(d, "    }}")?;
+        for part in 1..=parts {
+            writeln!(d)?;
+            writeln!(
+                d,
+                "    fn part{part}(&mut self) -> Result<helper::RunOutput, Error> {{"
+            )?;
+            writeln!(d, "        Err(Error::Unsolved)")?;
+            writeln!(d, "    }}")?;
+        }
         writeln!(d, "}}")?;
         writeln!(d)?;
         writeln!(d, "impl helper::Runner for Day{day:02} {{")?;
         writeln!(
             d,
-            "    fn parse(&mut self, file: &[u8], _part1: bool) -> Result<(), Error> {{"
+            "    fn parse(&mut self, file: &[u8], _part: u8) -> Result<(), Error> {{"
         )?;
         writeln!(
             d,
@@ -74,25 +123,15 @@ fn create_year(year: usize) -> Result<(), Error> {
         writeln!(d)?;
         writeln!(
             d,
-            "    fn part1(&mut self) -> Result<helper::RunOutput, Error> {{"
+            "    fn run_part(&mut self, part: u8) -> Result<helper::RunOutput, Error> {{"
         )?;
-        writeln!(d, "        Err(Error::Unsolved)")?;
-        writeln!(d, "    }}")?;
-        writeln!(d)?;
-        writeln!(
-            d,
-            "    fn part2(&mut self) -> Result<helper::RunOutput, Error> {{"
-        )?;
-        writeln!(d, "        Err(Error::Unsolved)")?;
-        writeln!(d, "    }}")?;
-        writeln!(d, "}}")?;
-        writeln!(d)?;
-        writeln!(d, "impl helper::EbcRunner for Day{day:02} {{")?;
-        writeln!(
-            d,
-            "    fn part3(&mut self) -> Result<helper::RunOutput, Error> {{"
-        )?;
-        writeln!(d, "        Err(Error::Unsolved)")?;
+
+        writeln!(d, "        match part {{")?;
+        for part in 1..=parts {
+            writeln!(d, "            {part} => self.part{part}(),")?;
+        }
+        writeln!(d, "            _ => Err(Error::Skipped),")?;
+        writeln!(d, "        }}")?;
         writeln!(d, "    }}")?;
         writeln!(d, "}}")?;
     }
@@ -100,12 +139,12 @@ fn create_year(year: usize) -> Result<(), Error> {
     writeln!(m)?;
     writeln!(
         m,
-        "pub fn register(runners: &mut BTreeMap<(usize, usize), NewEbcRunner>) {{"
+        "pub fn register(runners: &mut BTreeMap<(usize, usize), (u8, NewRunner)>) {{"
     )?;
-    for day in 1..=20 {
+    for day in 1..=days {
         writeln!(
             m,
-            "    runners.insert(({year}, {day}), || Box::new(day_{day:02}::Day{day:02}::new()));"
+            "    runners.insert(({year}, {day}), (3, || Box::new(day_{day:02}::Day{day:02}::new())));"
         )?;
     }
     writeln!(m, "}}")?;

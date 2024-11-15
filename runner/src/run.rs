@@ -1,22 +1,17 @@
 use std::time::{Duration, Instant};
 
 use colored::Colorize;
-use helper::{find_day_part_files, Error, InputFileCache, NewEbcRunner};
+use helper::{Error, InputFileCache, NewRunner};
 
 fn run_part(
-    new_runner: &NewEbcRunner,
-    part: usize,
+    new_runner: &NewRunner,
+    part: u8,
     input: impl AsRef<[u8]>,
     expect: Option<impl AsRef<[u8]>>,
 ) -> Result<String, Error> {
     let mut runner = new_runner();
-    runner.parse(input.as_ref(), part == 1)?;
-    let output = match part {
-        1 => runner.part1()?,
-        2 => runner.part2()?,
-        3 => runner.part3()?,
-        _ => unreachable!(),
-    };
+    runner.parse(input.as_ref(), part)?;
+    let output = runner.run_part(part)?;
 
     let output = output.to_string();
     let output = output.trim_end_matches('\n');
@@ -36,31 +31,18 @@ fn run_part(
 #[allow(clippy::too_many_arguments)]
 pub fn run(
     sample_data: bool,
-    new_runner: &NewEbcRunner,
+    new_runner: &NewRunner,
     output: bool,
     run_count: usize,
     year: usize,
     day: usize,
-    part: usize,
+    part: u8,
     input_file_cache: &InputFileCache<3>,
 ) -> Result<Duration, Error> {
-    let ydp = helper::YearDayPart::new(year, day, part);
+    let ydp = helper::YearDayPart::new(year, day, part as usize);
 
-    const USE_FILES_CACHE: bool = true;
-    let files = if USE_FILES_CACHE {
-        let f = input_file_cache.files(year, day, part, sample_data)?;
-        f.iter().map(|f| f.files()).collect()
-    } else {
-        match find_day_part_files(year, day, part, sample_data) {
-            Ok(files) => files,
-            Err(e) => {
-                if output {
-                    println!("{ydp}: Error: {}", format!("{e:?}").bright_red());
-                }
-                return Err(e);
-            }
-        }
-    };
+    let f = input_file_cache.files(year, day, part as usize, sample_data)?;
+    let files: Vec<(String, Option<String>)> = f.iter().map(|f| f.files()).collect();
 
     let mut total_elapsed = Duration::new(0, 0);
     let mut total_runs = 0;
