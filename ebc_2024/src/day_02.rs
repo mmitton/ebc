@@ -12,48 +12,52 @@ impl Day02 {
         Self::default()
     }
 
-    fn left_right(&self, lines: &[String], wrapping: bool) -> Vec<(usize, usize)> {
+    fn left_right(&self, lines: &[String], wrapping: bool) -> HashSet<(usize, usize)> {
         let reverse_words = self
             .words
             .iter()
             .map(|w| w.chars().rev().collect::<String>())
             .collect::<Vec<_>>();
 
-        fn matches(s: &str, w: &str, idx: usize, wrapping: bool) -> bool {
+        let mut points: HashSet<(usize, usize)> = HashSet::default();
+        fn add_matches(
+            s: &str,
+            w: &str,
+            x: usize,
+            y: usize,
+            wrapping: bool,
+            points: &mut HashSet<(usize, usize)>,
+        ) {
             if s.len() < w.len() {
-                false
-            } else if !wrapping || s.len() >= w.len() + idx {
-                s[idx..].starts_with(w)
+                return;
+            }
+            if !wrapping || s.len() >= w.len() + x {
+                if s[x..].starts_with(w) {
+                    points.extend((x..x + w.len()).map(|x| (x, y)))
+                }
             } else {
-                let tail = &s[idx..];
-                let head = &s[..w.len() - (s.len() - idx)];
-                w.starts_with(tail) && w.ends_with(head)
+                let tail = &s[x..];
+                let head = &s[..w.len() - (s.len() - x)];
+                if w.starts_with(tail) && w.ends_with(head) {
+                    points.extend((0..head.len()).map(|x| (x, y)));
+                    points.extend((x..s.len()).map(|x| (x, y)));
+                }
             }
         }
 
-        lines
-            .iter()
-            .enumerate()
-            .flat_map(|(y, s)| {
-                (0..s.len())
-                    .flat_map(|x| {
-                        self.words
-                            .iter()
-                            .zip(reverse_words.iter())
-                            .filter_map(|(w, rw)| {
-                                if matches(s, w, x, wrapping) || matches(s, rw, x, wrapping) {
-                                    Some(x..x + w.len())
-                                } else {
-                                    None
-                                }
-                            })
-                            .flatten()
-                            .map(|x| (x % s.len(), y))
-                            .collect::<HashSet<(usize, usize)>>()
-                    })
-                    .collect::<HashSet<(usize, usize)>>()
-            })
-            .collect()
+        for (y, s) in lines.iter().enumerate() {
+            (0..s.len()).for_each(|x| {
+                self.words
+                    .iter()
+                    .zip(reverse_words.iter())
+                    .for_each(|(w, rw)| {
+                        add_matches(s, w, x, y, wrapping, &mut points);
+                        add_matches(s, rw, x, y, wrapping, &mut points);
+                    });
+            });
+        }
+
+        points
     }
 }
 
