@@ -1,0 +1,11 @@
+[workspace]
+members = [ "runner", "new_year" , "ebc_2024"]
+exclude = [ "new_year" ]
+resolver = "2"
+
+[workspace.dependencies]
+helper = { git = "https://github.com/mmitton/helper.git" }
+ebc_2024 = { path = "ebc_2024" }
+
+[profile.release]
+debug = true

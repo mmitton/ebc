@@ -1,0 +1,16 @@
+[package]
+name = "runner"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4.31"
+clap = "4.4.8"
+colored = "2.0.4"
+helper.workspace = true
+ebc_2024.workspace = true
+
+[lints.clippy]
+all = "warn"
