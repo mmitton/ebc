@@ -32,9 +32,7 @@ impl Day04 {
     }
 
     fn part3(&mut self) -> Result<helper::RunOutput, Error> {
-        let min = self.nails.iter().copied().min().unwrap();
-        let max = self.nails.iter().copied().max().unwrap();
-        let mut level_to = (max + min) / 2;
+        let mut level_to: isize = self.nails.iter().sum::<isize>() / self.nails.len() as isize;
         let mut level_to_strikes = self.level_to(level_to);
         loop {
             let lower = self.level_to(level_to - 1);
