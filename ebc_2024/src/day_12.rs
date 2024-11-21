@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point};
-use std::{cmp::Ordering, collections::VecDeque};
+use std::collections::VecDeque;
 
 #[derive(Debug)]
 struct Catapult {
