@@ -4,8 +4,7 @@ resolver = "2"
 
 [workspace.dependencies]
 ebc_2024 = { path = "ebc_2024" }
-# helper = { git = "https://github.com/mmitton/helper.git" }
-helper = { path = "../helper" }
+helper = { git = "https://github.com/mmitton/helper.git" }
 
 [profile.release]
 debug = true
