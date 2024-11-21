@@ -48,31 +48,19 @@ impl Catapult {
         }
     }
 
-    fn can_hit_target(&self, target: &Point<isize>) -> Option<(usize, usize)> {
+    fn can_hit_target(&self, target: &Point<isize>) -> Option<usize> {
         let dy = target.y - self.point.y;
         let dx = target.x - self.point.x;
         if dx <= 0 {
             return None;
         }
 
-        match dx.cmp(&(-dy)) {
-            Ordering::Equal => Some((dx as usize, dx as usize)),
-            Ordering::Less => None,
-            Ordering::Greater => {
-                let power = (dx - dy) / 3;
-                if power == 0 {
-                    None
-                } else if (power * 3) + dy == dx {
-                    // Up, across, down
-                    Some((power as usize, dx as usize))
-                } else if dy < 0 && dx > -dy && dx <= -dy * 2 {
-                    // Up, across
-                    // panic!("{dy}");
-                    Some((-dy as usize, dx as usize))
-                } else {
-                    None
-                }
-            }
+        let power = (dx - dy) / 3;
+        if power != 0 && (power * 3) + dy == dx {
+            // Up, across, down
+            Some(power as usize)
+        } else {
+            None
         }
     }
 }
@@ -119,7 +107,7 @@ impl Day12 {
                     continue;
                 }
                 for catapult in self.catapults.iter() {
-                    if let Some((power, _)) = catapult.can_hit_target(&target.point) {
+                    if let Some(power) = catapult.can_hit_target(&target.point) {
                         rankings += power * catapult.id;
                         target.hp -= 1;
                         if target.hp > 0 {
