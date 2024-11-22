@@ -52,6 +52,7 @@ fn today(year: usize, month: usize, day: usize) -> (usize, usize) {
 fn main() -> Result<(), Error> {
     let mut config = helper::runner::Config::new(register, today);
     config.download_input(false);
+    config.allow_copy(false);
     config.readme_header(README_HEADER);
     helper::runner::main::<_, _, 3>(config)
 }
