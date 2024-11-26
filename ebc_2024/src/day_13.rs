@@ -1,21 +1,5 @@
 #[allow(unused_imports)]
-use helper::{print, println, BitArray, Error, HashMap, HashSet, Lines, LinesOpt, Point2D};
-use std::collections::BinaryHeap;
-
-#[derive(PartialEq, Eq)]
-struct Cost(usize);
-
-impl Ord for Cost {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.0.cmp(&self.0)
-    }
-}
-
-impl PartialOrd for Cost {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
+use helper::{print, println, Dijkstra, Error, HashMap, Lines, LinesOpt, Point2D};
 
 struct Tile {
     point: Point2D<isize>,
@@ -41,29 +25,15 @@ impl Day13 {
     where
         F: Fn(&Tile) -> bool,
     {
-        let mut work = BinaryHeap::new();
-        work.push((Cost(0), start));
-
-        let mut seen = HashMap::default();
-        seen.insert(start, 0);
-
-        while let Some((cost, at)) = work.pop() {
-            if is_end(&self.tiles[at]) {
-                return cost.0;
-            }
-
-            let neighbors = self.tiles[at].neighbors.clone();
-            for (to, time) in neighbors {
-                let cost = Cost(cost.0 + time);
-
-                let seen = seen.entry(to).or_insert(usize::MAX);
-                if *seen > cost.0 {
-                    *seen = cost.0;
-                    work.push((cost, to));
-                }
-            }
-        }
-        unreachable!()
+        Dijkstra::find_first(start, |idx| {
+            self.tiles[idx]
+                .neighbors
+                .iter()
+                .copied()
+                .map(|(to, time)| (time, to, is_end(&self.tiles[to])))
+        })
+        .unwrap()
+        .0
     }
 
     fn part1(&mut self) -> Result<helper::RunOutput, Error> {

@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
-use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point3D};
-use std::{collections::VecDeque, str::FromStr};
+use helper::{print, println, Dijkstra, Error, HashMap, HashSet, Lines, LinesOpt, Point3D};
+use std::str::FromStr;
 
 #[derive(Debug)]
 enum Direction {
@@ -86,35 +86,18 @@ impl Day14 {
         tree: &HashSet<Point3D<isize>>,
         from: Point3D<isize>,
     ) -> Vec<(isize, usize)> {
-        let mut seen = HashSet::default();
-        seen.insert(from);
-        let mut work = VecDeque::new();
-        work.push_back((from, 0));
+        Dijkstra::find_all(from, |p: Point3D<isize>| {
+            let neighbors = p.cardinal_neighbors();
 
-        let mut murkiness = Vec::new();
-        while let Some((p, dist)) = work.pop_front() {
-            if p.x == 0 && p.z == 0 {
-                murkiness.push((p.y, dist));
-            }
-
-            macro_rules! add_work {
-                ($p:expr) => {{
-                    if tree.contains(&$p) && !seen.contains(&$p) {
-                        seen.insert($p);
-                        work.push_back(($p, dist + 1));
-                    }
-                }};
-            }
-
-            add_work!(Point3D::new(p.x - 1, p.y, p.z));
-            add_work!(Point3D::new(p.x + 1, p.y, p.z));
-            add_work!(Point3D::new(p.x, p.y - 1, p.z));
-            add_work!(Point3D::new(p.x, p.y + 1, p.z));
-            add_work!(Point3D::new(p.x, p.y, p.z - 1));
-            add_work!(Point3D::new(p.x, p.y, p.z + 1));
-        }
-
-        murkiness
+            neighbors
+                .into_iter()
+                .filter(|p| tree.contains(p))
+                .map(|p| (1, p, p.x == 0 && p.z == 0))
+        })
+        .iter()
+        .copied()
+        .map(|(dist, p)| (p.y, dist))
+        .collect()
     }
 
     fn part1(&mut self) -> Result<helper::RunOutput, Error> {
