@@ -11,21 +11,6 @@ impl Day03 {
         Self::default()
     }
 
-    fn _print(&self) {
-        let width = *self.grid.keys().map(|(x, _)| x).max().unwrap() + 1;
-        let height = *self.grid.keys().map(|(_, y)| y).max().unwrap() + 1;
-
-        for y in 0..height {
-            for x in 0..width {
-                match self.grid.get(&(x, y)) {
-                    Some(d) => print!("{d}"),
-                    None => print!("."),
-                }
-            }
-            println!();
-        }
-    }
-
     fn dig(&mut self, diag: bool) -> usize {
         let mut removed = self.grid.len();
         let mut coords: Vec<(isize, isize)> = self.grid.keys().copied().collect();

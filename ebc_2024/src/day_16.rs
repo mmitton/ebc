@@ -80,12 +80,8 @@ impl Day16 {
                     let cycles = left / cycle_len;
                     found_cycle = true;
 
-                    print!("Found cycle from {last_spin} to {spin}.  {last_score}  {score}  {cycles} cycles skipped.  ");
-
                     score += (score - last_score) * cycles;
                     spin += cycle_len * cycles;
-
-                    println!("new score: {score}  new spin: {spin}");
                 }
             }
             spin += 1;

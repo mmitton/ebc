@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point};
+use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point2D};
 use std::{
     collections::{BTreeMap, VecDeque},
     ops::RangeInclusive,
@@ -7,7 +7,7 @@ use std::{
 
 #[derive(Copy, Clone)]
 struct Path {
-    to: Point<u8>,
+    to: Point2D<u8>,
     to_picked_up: u32,
     to_last_pickup: u32,
     to_dist: usize,
@@ -16,9 +16,9 @@ struct Path {
 #[derive(Default)]
 pub struct Day15 {
     map: Vec<Vec<char>>,
-    start: Point<u8>,
-    herbs: HashMap<char, Vec<Point<u8>>>,
-    paths: HashMap<Point<u8>, Vec<Path>>,
+    start: Point2D<u8>,
+    herbs: HashMap<char, Vec<Point2D<u8>>>,
+    paths: HashMap<Point2D<u8>, Vec<Path>>,
 }
 
 impl Day15 {
@@ -26,7 +26,7 @@ impl Day15 {
         Self::default()
     }
 
-    fn paths_from(&self, from: Point<u8>) -> Vec<Path> {
+    fn paths_from(&self, from: Point2D<u8>) -> Vec<Path> {
         let start = self.map[from.y as usize][from.x as usize];
         let mut work = VecDeque::new();
         work.push_front((0, from, 0));
@@ -36,10 +36,10 @@ impl Day15 {
         let mut paths = Vec::new();
         while let Some((dist, at, picked_up)) = work.pop_front() {
             for next in [
-                Point::new(at.x - 1, at.y),
-                Point::new(at.x + 1, at.y),
-                Point::new(at.x, at.y - 1),
-                Point::new(at.x, at.y + 1),
+                Point2D::new(at.x - 1, at.y),
+                Point2D::new(at.x + 1, at.y),
+                Point2D::new(at.x, at.y - 1),
+                Point2D::new(at.x, at.y + 1),
             ] {
                 if !seen.insert(next) {
                     continue;
@@ -66,11 +66,11 @@ impl Day15 {
         paths
     }
 
-    fn find_paths(&mut self, start: Option<Point<u8>>, x_range: Option<RangeInclusive<usize>>) {
+    fn find_paths(&mut self, start: Option<Point2D<u8>>, x_range: Option<RangeInclusive<usize>>) {
         if let Some(start) = start {
             self.start = start;
         } else {
-            self.start = Point::new(self.map[0].iter().position(|c| *c == '.').unwrap() as u8, 1);
+            self.start = Point2D::new(self.map[0].iter().position(|c| *c == '.').unwrap() as u8, 1);
             self.map[0][self.start.x as usize] = '#';
             self.map[1][self.start.x as usize] = 'Z';
         }
@@ -92,7 +92,7 @@ impl Day15 {
                     self.herbs
                         .entry(*c)
                         .or_default()
-                        .push(Point::new(x as u8, y as u8));
+                        .push(Point2D::new(x as u8, y as u8));
                 }
             }
         }
@@ -107,7 +107,7 @@ impl Day15 {
     }
 
     fn find_full_path(&mut self) -> Result<usize, Error> {
-        let mut work: BTreeMap<usize, HashSet<(Point<u8>, u32)>> = BTreeMap::default();
+        let mut work: BTreeMap<usize, HashSet<(Point2D<u8>, u32)>> = BTreeMap::default();
         work.entry(2)
             .or_default()
             .insert((self.start, 1u32 << (b'Z' - b'A')));
@@ -209,15 +209,15 @@ impl Day15 {
             self.map[75][169] = '#';
             self.map[75][170] = 'Z';
 
-            let start = Point::new(self.map[0].iter().position(|c| *c == '.').unwrap() as u8, 1);
+            let start = Point2D::new(self.map[0].iter().position(|c| *c == '.').unwrap() as u8, 1);
             self.map[0][start.x as usize] = '#';
             self.map[1][start.x as usize] = 'Z';
 
             let mut min_dist = 4;
 
             for (start, x_range) in [
-                (Point::new(84, 75), 0..=84),
-                (Point::new(170, 75), 170..=255),
+                (Point2D::new(84, 75), 0..=84),
+                (Point2D::new(170, 75), 170..=255),
                 (start, 86..=168),
             ] {
                 self.find_paths(Some(start), Some(x_range));

@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use helper::{print, println, BitArray, Error, HashMap, HashSet, Lines, LinesOpt, Point};
+use helper::{print, println, BitArray, Error, HashMap, HashSet, Lines, LinesOpt, Point2D};
 use std::collections::BinaryHeap;
 
 #[derive(PartialEq, Eq)]
@@ -18,7 +18,7 @@ impl PartialOrd for Cost {
 }
 
 struct Tile {
-    point: Point<isize>,
+    point: Point2D<isize>,
     level: i8,
     is_start: bool,
     is_end: bool,
@@ -86,7 +86,7 @@ impl helper::Runner for Day13 {
             let y = y as isize;
             for (x, c) in line.chars().enumerate() {
                 let x = x as isize;
-                let p = Point::new(x, y);
+                let p = Point2D::new(x, y);
                 match c {
                     'S' => {
                         self.start = self.tiles.len();
@@ -131,7 +131,7 @@ impl helper::Runner for Day13 {
             let from_level = self.tiles[from].level;
             macro_rules! link {
                 ($x:expr, $y:expr) => {{
-                    if let Some(to) = tiles.get(&Point::new($x, $y)) {
+                    if let Some(to) = tiles.get(&Point2D::new($x, $y)) {
                         let to_level = self.tiles[*to].level;
                         let time = from_level.abs_diff(to_level);
                         let time = time.min(10 - time) + 1;

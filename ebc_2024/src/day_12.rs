@@ -1,40 +1,39 @@
 #[allow(unused_imports)]
-use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point};
+use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point2D};
 use std::collections::VecDeque;
 
 #[derive(Debug)]
 struct Catapult {
     id: usize,
-    point: Point<isize>,
-    hits: HashMap<Point<isize>, (usize, usize)>,
+    point: Point2D<isize>,
+    hits: HashMap<Point2D<isize>, (usize, usize)>,
 }
 
 impl Catapult {
     fn new(c: char, x: isize, y: isize) -> Self {
         Self {
             id: (c as u8 - b'A' + 1) as usize,
-            point: Point::new(x, y),
+            point: Point2D::new(x, y),
             hits: HashMap::default(),
         }
     }
 
     fn calc_hits(&mut self, max_power: usize) {
         let mut p = self.point;
-        println!("{max_power}");
         'power: for power in 1..max_power {
             p.x += 1;
             p.y -= 1;
             self.hits.insert(p, (power, power));
             // Step to the right
             for t in 1..power {
-                let p = Point::new(p.x + t as isize, p.y);
+                let p = Point2D::new(p.x + t as isize, p.y);
                 if power + t > max_power {
                     continue 'power;
                 }
                 self.hits.insert(p, (power, power + t));
             }
             // Step diag down
-            let mut p: Point<isize> = Point::new(p.x + power as isize, p.y);
+            let mut p: Point2D<isize> = Point2D::new(p.x + power as isize, p.y);
             let mut t = 2 * power;
             while p.y <= 0 {
                 t += 1;
@@ -48,7 +47,7 @@ impl Catapult {
         }
     }
 
-    fn can_hit_target(&self, target: &Point<isize>) -> Option<usize> {
+    fn can_hit_target(&self, target: &Point2D<isize>) -> Option<usize> {
         let dy = target.y - self.point.y;
         let dx = target.x - self.point.x;
         if dx <= 0 {
@@ -67,14 +66,14 @@ impl Catapult {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Target {
-    point: Point<isize>,
+    point: Point2D<isize>,
     hp: usize,
 }
 
 impl Target {
     fn new(hp: usize, x: usize, y: usize) -> Self {
         Self {
-            point: Point::new(x as isize, y as isize),
+            point: Point2D::new(x as isize, y as isize),
             hp,
         }
     }
@@ -84,7 +83,7 @@ impl Target {
 pub struct Day12 {
     catapults: Vec<Catapult>,
     targets: Vec<Target>,
-    meteors: Vec<Point<isize>>,
+    meteors: Vec<Point2D<isize>>,
 }
 
 impl Day12 {
@@ -171,8 +170,6 @@ impl Day12 {
             ranking += min_ranking;
         }
 
-        println!("{max_power} {actual_max_power}");
-
         Ok(ranking.into())
     }
 }
@@ -200,7 +197,7 @@ impl helper::Runner for Day12 {
 
             for line in lines.iter() {
                 if let Some((x, y)) = line.split_once(' ') {
-                    self.meteors.push(Point::new(x.parse()?, -y.parse()?));
+                    self.meteors.push(Point2D::new(x.parse()?, -y.parse()?));
                 } else {
                     return Err(Error::InvalidInput(line.into()));
                 }

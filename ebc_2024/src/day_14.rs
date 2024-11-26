@@ -1,7 +1,6 @@
-use std::{collections::VecDeque, str::FromStr};
-
 #[allow(unused_imports)]
-use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt};
+use helper::{print, println, Error, HashMap, HashSet, Lines, LinesOpt, Point3D};
+use std::{collections::VecDeque, str::FromStr};
 
 #[derive(Debug)]
 enum Direction {
@@ -13,20 +12,20 @@ enum Direction {
 #[derive(Debug)]
 struct Branch {
     directions: Vec<Direction>,
-    leaf: (isize, isize, isize),
+    leaf: Point3D<isize>,
 }
 
 impl Branch {
-    fn grow(&mut self) -> HashSet<(isize, isize, isize)> {
+    fn grow(&mut self) -> HashSet<Point3D<isize>> {
         let mut segments = HashSet::default();
 
         for dir in self.directions.iter() {
             macro_rules! grow {
                 ($delta:expr, $x:expr, $y:expr, $z:expr) => {
                     for _ in 0..$delta {
-                        self.leaf.0 += $x;
-                        self.leaf.1 += $y;
-                        self.leaf.2 += $z;
+                        self.leaf.x += $x;
+                        self.leaf.y += $y;
+                        self.leaf.z += $z;
                         segments.insert(self.leaf);
                     }
                 };
@@ -51,7 +50,7 @@ impl FromStr for Branch {
         }
         Ok(Self {
             directions,
-            leaf: (0, 0, 0),
+            leaf: Point3D::new(0, 0, 0),
         })
     }
 }
@@ -84,8 +83,8 @@ impl Day14 {
     }
 
     fn find_murkiness_to_trunk(
-        tree: &HashSet<(isize, isize, isize)>,
-        from: (isize, isize, isize),
+        tree: &HashSet<Point3D<isize>>,
+        from: Point3D<isize>,
     ) -> Vec<(isize, usize)> {
         let mut seen = HashSet::default();
         seen.insert(from);
@@ -94,8 +93,8 @@ impl Day14 {
 
         let mut murkiness = Vec::new();
         while let Some((p, dist)) = work.pop_front() {
-            if p.0 == 0 && p.2 == 0 {
-                murkiness.push((p.1, dist));
+            if p.x == 0 && p.z == 0 {
+                murkiness.push((p.y, dist));
             }
 
             macro_rules! add_work {
@@ -107,12 +106,12 @@ impl Day14 {
                 }};
             }
 
-            add_work!((p.0 - 1, p.1, p.2));
-            add_work!((p.0 + 1, p.1, p.2));
-            add_work!((p.0, p.1 - 1, p.2));
-            add_work!((p.0, p.1 + 1, p.2));
-            add_work!((p.0, p.1, p.2 - 1));
-            add_work!((p.0, p.1, p.2 + 1));
+            add_work!(Point3D::new(p.x - 1, p.y, p.z));
+            add_work!(Point3D::new(p.x + 1, p.y, p.z));
+            add_work!(Point3D::new(p.x, p.y - 1, p.z));
+            add_work!(Point3D::new(p.x, p.y + 1, p.z));
+            add_work!(Point3D::new(p.x, p.y, p.z - 1));
+            add_work!(Point3D::new(p.x, p.y, p.z + 1));
         }
 
         murkiness
@@ -120,7 +119,12 @@ impl Day14 {
 
     fn part1(&mut self) -> Result<helper::RunOutput, Error> {
         let segments = self.branches[0].grow();
-        Ok(segments.iter().map(|(_, y, _)| *y).max().unwrap().into())
+        Ok(segments
+            .iter()
+            .map(|Point3D { y, .. }| *y)
+            .max()
+            .unwrap()
+            .into())
     }
 
     fn part2(&mut self) -> Result<helper::RunOutput, Error> {
